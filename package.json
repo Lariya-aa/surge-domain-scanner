@@ -1,0 +1,16 @@
+{
+  "name": "surge-domain-scanner",
+  "version": "1.0.0",
+  "description": "Scan a URL and export discovered domains in Surge list format.",
+  "type": "commonjs",
+  "bin": {
+    "surge-domain-scan": "./surge-domain-scan.js"
+  },
+  "scripts": {
+    "scan": "node ./surge-domain-scan.js",
+    "test": "node --test test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
