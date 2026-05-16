@@ -32,26 +32,48 @@ If the user wants hosts that an app **actually called** (real traffic, including
 node surge-domain-scan.js <url> [more urls...] [options]
 ```
 
+**Default invocation for agent-driven use** (publish-ready list, no ads/trackers):
+
+```bash
+node surge-domain-scan.js <url> --mode suffix --filter-ads
+```
+
+The CLI script defaults `filterAds: false` so human users get raw output, but
+**agents invoking this skill should always pass `--filter-ads`** unless the
+user explicitly asks for the raw list. Same for `--mode suffix` — it produces
+a much shorter, more publishable rule set.
+
 ### Common recipes
 
 | Goal | Command |
 |---|---|
-| Quick scan, exact DOMAIN rules | `node surge-domain-scan.js https://chatgpt.com` |
-| Collapse subdomains to suffix rules | `node surge-domain-scan.js https://chatgpt.com --mode suffix` |
-| Drop ad/analytics/tracker domains | `node surge-domain-scan.js https://news.example.com --filter-ads` |
-| Multiple seed URLs into one list | `node surge-domain-scan.js https://a.com https://b.com` |
-| Write to file | `node surge-domain-scan.js https://example.com --mode suffix --output Example.list` |
-| Deeper crawl (more hops of discovered text resources) | `node surge-domain-scan.js https://example.com --depth 2 --max-urls 200` |
-| Raw domain list (no Surge format) | `node surge-domain-scan.js https://example.com --format domains` |
+| **Default agent recipe (publish-ready)** | `node surge-domain-scan.js <url> --mode suffix --filter-ads` |
+| Quick scan, exact DOMAIN rules (raw, with ads) | `node surge-domain-scan.js https://chatgpt.com` |
+| Multiple seed URLs into one list | `node surge-domain-scan.js https://a.com https://b.com --mode suffix --filter-ads` |
+| Write to file | `node surge-domain-scan.js <url> --mode suffix --filter-ads --output Example.list` |
+| Deeper crawl (more hops of discovered text resources) | `node surge-domain-scan.js <url> --depth 2 --max-urls 200 --mode suffix --filter-ads` |
+| Raw domain list (no Surge format) | `node surge-domain-scan.js <url> --format domains --filter-ads` |
+| User explicitly wants ads/trackers kept | `node surge-domain-scan.js <url> --mode suffix --no-filter-ads` |
 
 Full flag set: `node surge-domain-scan.js --help`.
 
 ## Workflow Claude should follow
 
-1. Confirm the target URL(s), mode (exact vs suffix), and whether to filter ads.
-2. Run the script.
-3. Inspect the output header (`# HOSTS`, `# RULES`, `# FILTERED_ADS`, `# FETCH_ERRORS`). If `FETCH_ERRORS > 0`, mention which URLs failed; the input host is still recorded.
-4. If `HOSTS` is suspiciously low for a complex site (e.g., 0–3 for an SPA), warn that this is the static-scan limitation — much of the host list may only appear at runtime via JS. Suggest the sibling skill `surge-traffic-to-list` for those cases.
+1. Default to `--mode suffix --filter-ads`. Only drop `--filter-ads` if the
+   user explicitly says they want the raw / unfiltered list.
+2. Confirm the target URL(s) with the user if ambiguous.
+3. Run the script.
+4. Inspect the output header. **Show `# FILTERED_ADS: N` in your reply** so
+   the user can see how many ad/tracker domains were dropped. If `FILTERED_ADS:
+   0` but the target is a known ad-heavy site (news/media), warn that the
+   built-in blacklist may not cover their SSP/RTB stack and offer
+   `--no-filter-ads` for inspection.
+5. If `FETCH_ERRORS > 0`, mention which URLs failed; the input host is still
+   recorded.
+6. If `HOSTS` is suspiciously low for a complex site (e.g., 0–3 for an SPA),
+   warn that this is the static-scan limitation — much of the host list may
+   only appear at runtime via JS. Suggest the sibling skill
+   `surge-traffic-to-list` for those cases.
 
 ## Output anatomy
 
